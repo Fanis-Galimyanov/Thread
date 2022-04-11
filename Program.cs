@@ -14,6 +14,7 @@ string[] st_array = new string[100];
 string[] st_array_for_method = new string[100];
 DummyRequestHandler dummyRequest = new DummyRequestHandler();
 int count, strung_count = 0;
+bool flag;
 
 Console.WriteLine("Приложение запущено.");
 do
@@ -45,16 +46,21 @@ do
         {
             try
             {
+                flag = true;
                 guid_string = dummyRequest.HandleRequest(st_array_for_method[strung_count], st_array);
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"Было отправлено сообщение '{st_array_for_method[strung_count]}'. Присвоет идентификатор {guid_string}");
                 Console.ResetColor();
                 strung_count++;
-                ThreadPool.QueueUserWorkItem(callBack => answer(guid_string));
+                ThreadPool.QueueUserWorkItem(callBack => answer(guid_string,""));
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Что то упало! {ex.Message}");
+                flag=false;
+                //  Console.WriteLine($"Что то упало! {ex.Message}");
+                guid_string = Guid.NewGuid().ToString("D");
+                Console.WriteLine($"Было отправлено сообщение '{st_array_for_method[strung_count]}'. Присвоет идентификатор {guid_string}");
+                ThreadPool.QueueUserWorkItem(callBack => answer(guid_string, ex.Message));
             }
         }
         ThreadPool.QueueUserWorkItem(callBack => method());
@@ -67,10 +73,13 @@ while (!st1.Contains("/exit"));
 
 Console.WriteLine("Приложение завершает работу.");
 
-static void answer(string guid_string)
+void answer(string guid_string, string exrption_messege)
 {
     Thread.Sleep(10_000);
+    if(flag)
     Console.WriteLine($"Сообщение с идентификатором {guid_string} получило ответ {Guid.NewGuid().ToString("D")}");
+    else
+    Console.WriteLine($"Сообщение с идентификатором {guid_string} упало с ошибкой: {exrption_messege}");
 }
 
 public interface IRequestHandler
