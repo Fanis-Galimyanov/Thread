@@ -1,101 +1,65 @@
-﻿using System.Text;
-
-// Подключаем русский язык------------------------------------------------//
-Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-var enc1251 = Encoding.GetEncoding(1251);
-System.Console.OutputEncoding = System.Text.Encoding.UTF8;
-System.Console.InputEncoding = enc1251;
-//------------------------------------------------------------------------//
-
-string st1="";
-string st2="";
-string guid_string;
-string[] st_array = new string[100];
-string[] st_array_for_method = new string[100];
+﻿RussianText.connectRussianText();
 DummyRequestHandler dummyRequest = new DummyRequestHandler();
-int count, strung_count = 0;
-bool flag;
+List<string> responsesReceivedFromTheRecipient = new List<string>();
+
+string requestText="", messageArgument="", guidString;
+string[] arrayOfMessageArguments = new string[100];
+int numberOfMessageArguments;
 
 Console.WriteLine("Приложение запущено.");
 do
 {
     Console.WriteLine("Введите текст запроса для отправки. Для выхода введите /exit");
-    Console.ForegroundColor = ConsoleColor.Red;
-    st1 = Console.ReadLine();
-    Console.ResetColor();
-    if (!st1.Contains("/exit"))
+    redInputInConsole(ref requestText);
+    if (!requestText.Contains("/exit"))
     {
-        Console.WriteLine($"Будет послано сообщение '{st1}'");
+        Console.WriteLine($"Будет послано сообщение '{requestText}'");
         Console.WriteLine("Введите аргумент сообщения. Если аргумента нет введите /end");
-        Console.ForegroundColor = ConsoleColor.Red;
-        st2 = Console.ReadLine();
-        Console.ResetColor();
-        count = 0;
-        st_array[count] = st2;
-        while (!st2.Contains("/end"))
+        redInputInConsole(ref messageArgument);
+        numberOfMessageArguments = 0;
+        arrayOfMessageArguments[numberOfMessageArguments] = messageArgument;
+        while (!messageArgument.Contains("/end"))
         {
-            count++;
+            numberOfMessageArguments++;
             Console.WriteLine("Введите следующий аргумент сообщения. Для окончания добавления аргументов введите /end");
-            Console.ForegroundColor = ConsoleColor.Red;
-            st2 = Console.ReadLine();
-            Console.ResetColor();
-            st_array[count] = st2;
+            redInputInConsole(ref messageArgument);
+            arrayOfMessageArguments[numberOfMessageArguments] = messageArgument;
         }
-        st_array_for_method[strung_count] = st1;
-        void method() 
+        void flowUnit(string requestText) 
         {
             try
             {
-                flag = true;
-                guid_string = dummyRequest.HandleRequest(st_array_for_method[strung_count], st_array);
+                guidString = dummyRequest.HandleRequest(requestText, arrayOfMessageArguments);
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Было отправлено сообщение '{st_array_for_method[strung_count]}'. Присвоет идентификатор {guid_string}");
+                Console.WriteLine($"Было отправлено сообщение '{requestText}'. Присвоет идентификатор {guidString}");
                 Console.ResetColor();
-                strung_count++;
-                ThreadPool.QueueUserWorkItem(callBack => answer(guid_string,""));
+                responsesReceivedFromTheRecipient.Add("Сообщение с идентификатором " + guidString + " получило ответ " + Guid.NewGuid().ToString("D"));
             }
             catch (Exception ex)
             {
-                flag=false;
-                //  Console.WriteLine($"Что то упало! {ex.Message}");
-                guid_string = Guid.NewGuid().ToString("D");
-                Console.WriteLine($"Было отправлено сообщение '{st_array_for_method[strung_count]}'. Присвоет идентификатор {guid_string}");
-                ThreadPool.QueueUserWorkItem(callBack => answer(guid_string, ex.Message));
+                guidString = Guid.NewGuid().ToString("D");
+                Console.WriteLine($"Было отправлено сообщение '{requestText}'. Присвоет идентификатор {guidString}");
+                responsesReceivedFromTheRecipient.Add("Сообщение с идентификатором " + guidString + " упало с ошибкой: " + ex.Message);
+                responsesFromTheRecipient(responsesReceivedFromTheRecipient);
             }
         }
-        ThreadPool.QueueUserWorkItem(callBack => method());
-        
+        ThreadPool.QueueUserWorkItem(callBack => flowUnit(requestText));
     }
 } 
-while (!st1.Contains("/exit"));
-
-
-
+while (!requestText.Contains("/exit"));
 Console.WriteLine("Приложение завершает работу.");
 
-void answer(string guid_string, string exrption_messege)
+void responsesFromTheRecipient(List<string> responsesReceivedFromTheRecipient)
 {
-    Thread.Sleep(10_000);
-    if(flag)
-    Console.WriteLine($"Сообщение с идентификатором {guid_string} получило ответ {Guid.NewGuid().ToString("D")}");
-    else
-    Console.WriteLine($"Сообщение с идентификатором {guid_string} упало с ошибкой: {exrption_messege}");
-}
-
-public interface IRequestHandler
-{
-    string HandleRequest(string message, string[] arguments);
-}
-public class DummyRequestHandler : IRequestHandler
-{
-    public string HandleRequest(string message, string[] arguments)
+    foreach (string answerString in responsesReceivedFromTheRecipient)
     {
-        // Притворяемся, что делаем что то.
-        Thread.Sleep(10_000);
-        if (message.Contains("упади"))
-        {
-            throw new Exception("Я упал, как сам просил");
-        }
-        return Guid.NewGuid().ToString("D");
+        Console.WriteLine(answerString);
     }
+    responsesReceivedFromTheRecipient.Clear();
+}
+void redInputInConsole(ref string stringVariable)
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    stringVariable = Console.ReadLine();
+    Console.ResetColor();
 }
